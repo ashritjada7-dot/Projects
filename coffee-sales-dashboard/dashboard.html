@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maven Roasters - Coffee Shop Sales Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e4e4e7;
+    --muted: #9ca3af;
+    --accent: #c8a26b;
+    --accent2: #8b6f47;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --orange: #f97316;
+    --pink: #ec4899;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .header .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 24px 32px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .kpi-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .kpi-card .detail { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 32px 32px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 0 32px 16px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 0 32px 32px;
+  }
+  @media (max-width: 1200px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .chart-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .chart-container { position: relative; width: 100%; }
+  .chart-tall { height: 350px; }
+  .chart-med { height: 300px; }
+  .product-list { max-height: 400px; overflow-y: auto; }
+  .product-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .product-row:last-child { border-bottom: none; }
+  .product-rank {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .product-bar-wrap { flex: 1; min-width: 0; }
+  .product-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .product-bar-bg {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .product-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .product-revenue {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .product-qty {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: 60px;
+    text-align: right;
+  }
+  .toggle-group {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .toggle-btn:hover { color: var(--text); }
+  .toggle-btn.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+  canvas { max-width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Maven Roasters</h1>
+    <div class="subtitle">NYC Coffee Shop Sales &middot; Jan 1 &ndash; Jun 30, 2023</div>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active" data-location="all">All Locations</button>
+    <button class="filter-btn" data-location="Hell's Kitchen">Hell's Kitchen</button>
+    <button class="filter-btn" data-location="Astoria">Astoria</button>
+    <button class="filter-btn" data-location="Lower Manhattan">Lower Manhattan</button>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="label">Total Revenue</div>
+    <div class="value" id="kpi-revenue">$698,812</div>
+    <div class="detail">across 3 locations</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Transactions</div>
+    <div class="value" id="kpi-transactions">149,116</div>
+    <div class="detail">total orders</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Avg Daily Revenue</div>
+    <div class="value" id="kpi-avg-daily">$3,861</div>
+    <div class="detail">per day average</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Products</div>
+    <div class="value" id="kpi-products">80</div>
+    <div class="detail">unique items sold</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Peak Hour</div>
+    <div class="value" id="kpi-peak">10 AM</div>
+    <div class="detail">highest revenue hour</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="chart-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+      <h3 style="margin:0">Daily Sales Revenue</h3>
+      <div class="toggle-group" style="margin:0" id="daily-toggle">
+        <button class="toggle-btn active" data-mode="line">Trend Line</button>
+        <button class="toggle-btn" data-mode="bar">Bar Chart</button>
+      </div>
+    </div>
+    <div class="chart-container chart-tall">
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="chart-card">
+    <h3>Sales by Hour of Day</h3>
+    <div class="chart-container chart-med">
+      <canvas id="hourlyChart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3>Revenue by Category</h3>
+    <div class="chart-container chart-med">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="chart-card">
+    <h3>Top 20 Products by Revenue</h3>
+    <div class="product-list" id="product-list"></div>
+  </div>
+  <div class="chart-card">
+    <h3>Revenue by Location</h3>
+    <div class="chart-container chart-med">
+      <canvas id="locationChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  daily: [{"date":"2023-01-01","revenue":2508.2},{"date":"2023-01-02","revenue":2403.35},{"date":"2023-01-03","revenue":2565.0},{"date":"2023-01-04","revenue":2220.1},{"date":"2023-01-05","revenue":2418.85},{"date":"2023-01-06","revenue":2273.85},{"date":"2023-01-07","revenue":2619.65},{"date":"2023-01-08","revenue":2638.53},{"date":"2023-01-09","revenue":2676.61},{"date":"2023-01-10","revenue":2685.65},{"date":"2023-01-11","revenue":2555.75},{"date":"2023-01-12","revenue":2327.7},{"date":"2023-01-13","revenue":3033.6},{"date":"2023-01-14","revenue":2682.51},{"date":"2023-01-15","revenue":3167.71},{"date":"2023-01-16","revenue":2829.16},{"date":"2023-01-17","revenue":3285.8},{"date":"2023-01-18","revenue":2735.96},{"date":"2023-01-19","revenue":2913.68},{"date":"2023-01-20","revenue":2603.73},{"date":"2023-01-21","revenue":3082.85},{"date":"2023-01-22","revenue":2367.33},{"date":"2023-01-23","revenue":2853.15},{"date":"2023-01-24","revenue":2868.95},{"date":"2023-01-25","revenue":2846.55},{"date":"2023-01-26","revenue":2863.03},{"date":"2023-01-27","revenue":2742.1},{"date":"2023-01-28","revenue":2037.1},{"date":"2023-01-29","revenue":2060.75},{"date":"2023-01-30","revenue":2476.41},{"date":"2023-01-31","revenue":2334.13},{"date":"2023-02-01","revenue":2466.3},{"date":"2023-02-02","revenue":2506.9},{"date":"2023-02-03","revenue":2591.45},{"date":"2023-02-04","revenue":2551.7},{"date":"2023-02-05","revenue":2304.7},{"date":"2023-02-06","revenue":2203.4},{"date":"2023-02-07","revenue":2434.55},{"date":"2023-02-08","revenue":2762.43},{"date":"2023-02-09","revenue":2610.63},{"date":"2023-02-10","revenue":2901.6},{"date":"2023-02-11","revenue":2526.74},{"date":"2023-02-12","revenue":2894.0},{"date":"2023-02-13","revenue":2845.48},{"date":"2023-02-14","revenue":2673.93},{"date":"2023-02-15","revenue":2928.05},{"date":"2023-02-16","revenue":3023.33},{"date":"2023-02-17","revenue":2300.75},{"date":"2023-02-18","revenue":2865.48},{"date":"2023-02-19","revenue":3219.6},{"date":"2023-02-20","revenue":2883.63},{"date":"2023-02-21","revenue":2783.53},{"date":"2023-02-22","revenue":2928.7},{"date":"2023-02-23","revenue":2746.21},{"date":"2023-02-24","revenue":2940.7},{"date":"2023-02-25","revenue":2823.55},{"date":"2023-02-26","revenue":2956.75},{"date":"2023-02-27","revenue":3160.0},{"date":"2023-02-28","revenue":2311.1},{"date":"2023-03-01","revenue":3040.25},{"date":"2023-03-02","revenue":2996.05},{"date":"2023-03-03","revenue":3155.15},{"date":"2023-03-04","revenue":2781.9},{"date":"2023-03-05","revenue":2945.3},{"date":"2023-03-06","revenue":2618.05},{"date":"2023-03-07","revenue":2803.5},{"date":"2023-03-08","revenue":3523.26},{"date":"2023-03-09","revenue":3459.97},{"date":"2023-03-10","revenue":3441.58},{"date":"2023-03-11","revenue":3211.65},{"date":"2023-03-12","revenue":3088.33},{"date":"2023-03-13","revenue":3627.65},{"date":"2023-03-14","revenue":3312.66},{"date":"2023-03-15","revenue":3338.03},{"date":"2023-03-16","revenue":3386.11},{"date":"2023-03-17","revenue":3181.75},{"date":"2023-03-18","revenue":3408.36},{"date":"2023-03-19","revenue":3340.03},{"date":"2023-03-20","revenue":3262.28},{"date":"2023-03-21","revenue":3209.8},{"date":"2023-03-22","revenue":3284.11},{"date":"2023-03-23","revenue":3361.13},{"date":"2023-03-24","revenue":3586.2},{"date":"2023-03-25","revenue":3380.95},{"date":"2023-03-26","revenue":3310.83},{"date":"2023-03-27","revenue":3674.35},{"date":"2023-03-28","revenue":2792.55},{"date":"2023-03-29","revenue":2492.0},{"date":"2023-03-30","revenue":2932.82},{"date":"2023-03-31","revenue":2888.08},{"date":"2023-04-01","revenue":3699.9},{"date":"2023-04-02","revenue":3575.85},{"date":"2023-04-03","revenue":3604.95},{"date":"2023-04-04","revenue":3327.3},{"date":"2023-04-05","revenue":3552.7},{"date":"2023-04-06","revenue":3250.2},{"date":"2023-04-07","revenue":3682.8},{"date":"2023-04-08","revenue":4573.06},{"date":"2023-04-09","revenue":4088.88},{"date":"2023-04-10","revenue":4220.3},{"date":"2023-04-11","revenue":3852.86},{"date":"2023-04-12","revenue":4040.18},{"date":"2023-04-13","revenue":4114.53},{"date":"2023-04-14","revenue":4131.25},{"date":"2023-04-15","revenue":4121.79},{"date":"2023-04-16","revenue":4500.39},{"date":"2023-04-17","revenue":4332.1},{"date":"2023-04-18","revenue":4354.07},{"date":"2023-04-19","revenue":4318.31},{"date":"2023-04-20","revenue":3924.78},{"date":"2023-04-21","revenue":4005.38},{"date":"2023-04-22","revenue":3961.58},{"date":"2023-04-23","revenue":4321.29},{"date":"2023-04-24","revenue":4265.45},{"date":"2023-04-25","revenue":4255.0},{"date":"2023-04-26","revenue":4559.45},{"date":"2023-04-27","revenue":4427.1},{"date":"2023-04-28","revenue":3373.8},{"date":"2023-04-29","revenue":2953.5},{"date":"2023-04-30","revenue":3552.33},{"date":"2023-05-01","revenue":4731.45},{"date":"2023-05-02","revenue":4625.5},{"date":"2023-05-03","revenue":4714.6},{"date":"2023-05-04","revenue":4589.7},{"date":"2023-05-05","revenue":4701.0},{"date":"2023-05-06","revenue":4205.15},{"date":"2023-05-07","revenue":4542.7},{"date":"2023-05-08","revenue":5604.21},{"date":"2023-05-09","revenue":5100.97},{"date":"2023-05-10","revenue":5256.33},{"date":"2023-05-11","revenue":4850.06},{"date":"2023-05-12","revenue":4681.13},{"date":"2023-05-13","revenue":5511.53},{"date":"2023-05-14","revenue":5052.65},{"date":"2023-05-15","revenue":5384.98},{"date":"2023-05-16","revenue":5542.13},{"date":"2023-05-17","revenue":5418.0},{"date":"2023-05-18","revenue":5583.47},{"date":"2023-05-19","revenue":5657.88},{"date":"2023-05-20","revenue":5519.28},{"date":"2023-05-21","revenue":5370.81},{"date":"2023-05-22","revenue":5541.16},{"date":"2023-05-23","revenue":5242.91},{"date":"2023-05-24","revenue":5391.45},{"date":"2023-05-25","revenue":5230.85},{"date":"2023-05-26","revenue":5300.95},{"date":"2023-05-27","revenue":5559.15},{"date":"2023-05-28","revenue":4338.65},{"date":"2023-05-29","revenue":3959.5},{"date":"2023-05-30","revenue":4835.48},{"date":"2023-05-31","revenue":4684.13},{"date":"2023-06-01","revenue":5227.0},{"date":"2023-06-02","revenue":5056.5},{"date":"2023-06-03","revenue":5166.65},{"date":"2023-06-04","revenue":4985.15},{"date":"2023-06-05","revenue":4911.15},{"date":"2023-06-06","revenue":4598.9},{"date":"2023-06-07","revenue":4883.1},{"date":"2023-06-08","revenue":6151.59},{"date":"2023-06-09","revenue":5867.16},{"date":"2023-06-10","revenue":5626.75},{"date":"2023-06-11","revenue":5418.61},{"date":"2023-06-12","revenue":5328.7},{"date":"2023-06-13","revenue":6189.36},{"date":"2023-06-14","revenue":5836.52},{"date":"2023-06-15","revenue":5806.24},{"date":"2023-06-16","revenue":6011.43},{"date":"2023-06-17","revenue":6117.6},{"date":"2023-06-18","revenue":6026.09},{"date":"2023-06-19","revenue":6403.91},{"date":"2023-06-20","revenue":5494.66},{"date":"2023-06-21","revenue":5808.38},{"date":"2023-06-22","revenue":5615.1},{"date":"2023-06-23","revenue":5781.86},{"date":"2023-06-24","revenue":5906.1},{"date":"2023-06-25","revenue":5754.85},{"date":"2023-06-26","revenue":5875.9},{"date":"2023-06-27","revenue":5975.65},{"date":"2023-06-28","revenue":4728.9},{"date":"2023-06-29","revenue":4450.75},{"date":"2023-06-30","revenue":5481.32}],
+  top_products: [{"name":"Sustainably Grown Organic Lg","qty":4453,"revenue":21151.75},{"name":"Dark chocolate Lg","qty":4668,"revenue":21006.0},{"name":"Latte Rg","qty":4497,"revenue":19112.25},{"name":"Cappuccino Lg","qty":4151,"revenue":17641.75},{"name":"Morning Sunrise Chai Lg","qty":4346,"revenue":17384.0},{"name":"Latte","qty":4602,"revenue":17257.5},{"name":"Jamaican Coffee River Lg","qty":4395,"revenue":16481.25},{"name":"Sustainably Grown Organic Rg","qty":4329,"revenue":16233.75},{"name":"Cappuccino","qty":4266,"revenue":15997.5},{"name":"Brazilian Lg","qty":4317,"revenue":15109.5},{"name":"Ethiopia Lg","qty":4227,"revenue":14794.5},{"name":"Dark chocolate Rg","qty":4007,"revenue":14024.5},{"name":"Spicy Eye Opener Chai Lg","qty":4404,"revenue":13652.4},{"name":"Ethiopia Rg","qty":4393,"revenue":13179.0},{"name":"Brazilian Rg","qty":4385,"revenue":13155.0},{"name":"Peppermint Lg","qty":4350,"revenue":13050.0},{"name":"English Breakfast Lg","qty":4309,"revenue":12927.0},{"name":"Earl Grey Lg","qty":4245,"revenue":12735.0},{"name":"Serenity Green Tea Lg","qty":4220,"revenue":12660.0},{"name":"Columbian Medium Roast Lg","qty":4195,"revenue":12585.0}],
+  hourly: [{"hour":6,"revenue":21900.27,"transactions":4594,"qty":6865},{"hour":7,"revenue":63526.47,"transactions":13428,"qty":19449},{"hour":8,"revenue":82699.87,"transactions":17654,"qty":25197},{"hour":9,"revenue":85169.53,"transactions":17764,"qty":25370},{"hour":10,"revenue":88673.39,"transactions":18545,"qty":26713},{"hour":11,"revenue":46319.14,"transactions":9766,"qty":14035},{"hour":12,"revenue":40192.79,"transactions":8708,"qty":12690},{"hour":13,"revenue":40367.45,"transactions":8714,"qty":12439},{"hour":14,"revenue":41304.74,"transactions":8933,"qty":12907},{"hour":15,"revenue":41733.1,"transactions":8979,"qty":12923},{"hour":16,"revenue":41122.75,"transactions":9093,"qty":12881},{"hour":17,"revenue":40134.31,"transactions":8745,"qty":12700},{"hour":18,"revenue":34286.2,"transactions":7498,"qty":10826},{"hour":19,"revenue":28446.68,"transactions":6092,"qty":8595},{"hour":20,"revenue":2935.64,"transactions":603,"qty":880}],
+  categories: [{"category":"Coffee","revenue":269952.45},{"category":"Tea","revenue":196405.95},{"category":"Bakery","revenue":82315.64},{"category":"Drinking Chocolate","revenue":72416.0},{"category":"Coffee beans","revenue":40085.25},{"category":"Branded","revenue":13607.0},{"category":"Loose Tea","revenue":11213.6},{"category":"Flavours","revenue":8408.8},{"category":"Packaged Chocolate","revenue":4407.64}],
+  locations: [{"location":"Hell's Kitchen","revenue":236511.17},{"location":"Astoria","revenue":232243.91},{"location":"Lower Manhattan","revenue":230057.25}],
+  summary: {"total_revenue":698812.33,"total_transactions":149116,"avg_daily_revenue":3860.84,"num_products":80,"num_days":181}
+};
+
+const fmt = n => '$' + n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+const fmtK = n => n >= 1000 ? '$' + (n/1000).toFixed(1) + 'k' : '$' + n.toFixed(0);
+
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#2a2d3a';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+// ── Daily Sales Chart ──
+const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+const dailyLabels = DATA.daily.map(d => d.date);
+const dailyValues = DATA.daily.map(d => d.revenue);
+
+// Compute 7-day moving average
+const ma7 = dailyValues.map((v, i) => {
+  if (i < 6) return null;
+  let sum = 0;
+  for (let j = i - 6; j <= i; j++) sum += dailyValues[j];
+  return sum / 7;
+});
+
+const dailyChart = new Chart(dailyCtx, {
+  type: 'line',
+  data: {
+    labels: dailyLabels,
+    datasets: [
+      {
+        label: 'Daily Revenue',
+        data: dailyValues,
+        borderColor: '#c8a26b',
+        backgroundColor: 'rgba(200,162,107,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      },
+      {
+        label: '7-Day Moving Avg',
+        data: ma7,
+        borderColor: '#3b82f6',
+        borderWidth: 2,
+        borderDash: [6, 3],
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.4,
+        fill: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2a2d3a',
+        borderWidth: 1,
+        titleColor: '#e4e4e7',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          title: items => {
+            const d = new Date(items[0].label + 'T00:00:00');
+            return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+          },
+          label: item => ' ' + item.dataset.label + ': ' + fmt(item.raw)
+        }
+      },
+      legend: { display: true, position: 'top', labels: { usePointStyle: true, pointStyle: 'line', padding: 16 } }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'week', displayFormats: { week: 'MMM d' } },
+        grid: { display: false },
+        ticks: { maxTicksLimit: 12 }
+      },
+      y: {
+        grid: { color: '#2a2d3a22' },
+        ticks: { callback: v => fmtK(v) },
+        beginAtZero: false,
+      }
+    }
+  }
+});
+
+// Toggle daily chart type
+document.getElementById('daily-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.toggle-btn');
+  if (!btn) return;
+  document.querySelectorAll('#daily-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const mode = btn.dataset.mode;
+  dailyChart.config.type = mode === 'bar' ? 'bar' : 'line';
+  dailyChart.data.datasets[0].fill = mode === 'line';
+  dailyChart.data.datasets[0].tension = mode === 'line' ? 0.3 : 0;
+  dailyChart.data.datasets[0].pointRadius = mode === 'line' ? 0 : 0;
+  dailyChart.data.datasets[0].borderWidth = mode === 'line' ? 2 : 0;
+  dailyChart.data.datasets[0].backgroundColor = mode === 'bar' ? '#c8a26b' : 'rgba(200,162,107,0.08)';
+  dailyChart.data.datasets[0].borderRadius = mode === 'bar' ? 2 : 0;
+  dailyChart.data.datasets[1].hidden = mode === 'bar';
+  dailyChart.update();
+});
+
+// ── Hourly Sales Chart ──
+const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+const hourLabels = DATA.hourly.map(h => {
+  const hr = h.hour;
+  if (hr === 0) return '12 AM';
+  if (hr < 12) return hr + ' AM';
+  if (hr === 12) return '12 PM';
+  return (hr - 12) + ' PM';
+});
+
+const maxHourlyRev = Math.max(...DATA.hourly.map(h => h.revenue));
+const hourlyColors = DATA.hourly.map(h => {
+  const intensity = h.revenue / maxHourlyRev;
+  if (intensity > 0.8) return '#c8a26b';
+  if (intensity > 0.5) return '#a88a55';
+  return '#6b5c42';
+});
+
+new Chart(hourlyCtx, {
+  type: 'bar',
+  data: {
+    labels: hourLabels,
+    datasets: [{
+      label: 'Revenue',
+      data: DATA.hourly.map(h => h.revenue),
+      backgroundColor: hourlyColors,
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2a2d3a',
+        borderWidth: 1,
+        titleColor: '#e4e4e7',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          label: item => {
+            const h = DATA.hourly[item.dataIndex];
+            return [
+              ' Revenue: ' + fmt(h.revenue),
+              ' Transactions: ' + h.transactions.toLocaleString(),
+              ' Items Sold: ' + h.qty.toLocaleString()
+            ];
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#2a2d3a22' }, ticks: { callback: v => fmtK(v) } }
+    }
+  }
+});
+
+// ── Category Doughnut Chart ──
+const catCtx = document.getElementById('categoryChart').getContext('2d');
+const catColors = ['#c8a26b', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ec4899', '#06b6d4', '#eab308', '#ef4444'];
+
+new Chart(catCtx, {
+  type: 'doughnut',
+  data: {
+    labels: DATA.categories.map(c => c.category),
+    datasets: [{
+      data: DATA.categories.map(c => c.revenue),
+      backgroundColor: catColors,
+      borderColor: '#1a1d27',
+      borderWidth: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 12 } }
+      },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2a2d3a',
+        borderWidth: 1,
+        titleColor: '#e4e4e7',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          label: item => {
+            const total = DATA.summary.total_revenue;
+            const pct = ((item.raw / total) * 100).toFixed(1);
+            return ' ' + item.label + ': ' + fmt(item.raw) + ' (' + pct + '%)';
+          }
+        }
+      }
+    }
+  }
+});
+
+// ── Location Bar Chart ──
+const locCtx = document.getElementById('locationChart').getContext('2d');
+const locColors = ['#c8a26b', '#3b82f6', '#22c55e'];
+
+new Chart(locCtx, {
+  type: 'bar',
+  data: {
+    labels: DATA.locations.map(l => l.location),
+    datasets: [{
+      label: 'Revenue',
+      data: DATA.locations.map(l => l.revenue),
+      backgroundColor: locColors,
+      borderRadius: 6,
+      borderSkipped: false,
+      barPercentage: 0.5,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a1d27',
+        borderColor: '#2a2d3a',
+        borderWidth: 1,
+        titleColor: '#e4e4e7',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          label: item => {
+            const pct = ((item.raw / DATA.summary.total_revenue) * 100).toFixed(1);
+            return ' ' + fmt(item.raw) + ' (' + pct + '%)';
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: '#2a2d3a22' }, ticks: { callback: v => fmtK(v) } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Top Products List ──
+function renderProducts(products) {
+  const list = document.getElementById('product-list');
+  const maxRev = products[0]?.revenue || 1;
+  const barColors = ['#c8a26b', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ec4899'];
+  list.innerHTML = products.map((p, i) => `
+    <div class="product-row">
+      <div class="product-rank">${i + 1}</div>
+      <div class="product-bar-wrap">
+        <div class="product-name" title="${p.name}">${p.name}</div>
+        <div class="product-bar-bg">
+          <div class="product-bar-fill" style="width:${(p.revenue / maxRev * 100).toFixed(1)}%;background:${barColors[i % barColors.length]}"></div>
+        </div>
+      </div>
+      <div class="product-qty">${p.qty.toLocaleString()} qty</div>
+      <div class="product-revenue">${fmt(p.revenue)}</div>
+    </div>
+  `).join('');
+}
+renderProducts(DATA.top_products);
+</script>
+</body>
+</html>
