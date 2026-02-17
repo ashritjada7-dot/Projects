@@ -1,0 +1,34 @@
+import java.util.Scanner;
+
+public class TemperatureConverter{
+
+public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+
+        // --- Get the first number ---
+        // We use 'double' instead of 'int' so decimals like 3.14 work.
+        System.out.print("Enter a temperature: ");
+        double temp1 = scanner.nextDouble();
+        // Ask whether it is Celsius or Fahrenheit
+        System.out.print("Please type in a C if the temperature is in Celsius. Please type in an F if the temperature is in Fahrenheit: ");
+        char CorF = scanner.nextChar();
+
+        double result;
+
+        if (char == 'F') {
+            result = (temp1- 32) * 5/9;
+        } else if (operator == 'C') {
+            result = (temp1 * 9/5) + 32;
+
+
+       System.out.printf('%.2f', result);
+
+
+
+        scanner.close();
+    }
+}
+
+    
+
