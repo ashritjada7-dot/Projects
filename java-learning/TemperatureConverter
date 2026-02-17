@@ -16,10 +16,12 @@ public static void main(String[] args) {
 
         double result;
 
-        if (char == 'C') {
-            result = temp1;
-        } else if (operator == '-') {
-            result = num1 - num2;
+        if (char == 'F') {
+            result = (temp1- 32) * 5/9;
+        } else if (operator == 'C') {
+            result = (temp1 * 9/5) + 32;
+
+
 
     
 
