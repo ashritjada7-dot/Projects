@@ -1,3 +1,11 @@
 import java.util.Scanner;
 
-public class TemperatureConverter
+public class TemperatureConverter{
+
+public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+
+        // --- Get the first number ---
+        // We use 'double' instead of 'int' so decimals like 3.14 work.
+        System.out.print("Enter a temperature: ");
