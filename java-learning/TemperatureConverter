@@ -9,3 +9,8 @@ public static void main(String[] args) {
         // --- Get the first number ---
         // We use 'double' instead of 'int' so decimals like 3.14 work.
         System.out.print("Enter a temperature: ");
+        double temp1 = scanner.nextDouble();
+        // Ask whether it is Celsius or Fahrenheit
+        System.out.print("Please type in a C if the temperature is in Celsius. Please type in an F if the temperature is in Fahrenheit: ");
+        char CorF = scanner.nextChar();
+
