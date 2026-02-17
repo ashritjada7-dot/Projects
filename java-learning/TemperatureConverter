@@ -14,5 +14,12 @@ public static void main(String[] args) {
         System.out.print("Please type in a C if the temperature is in Celsius. Please type in an F if the temperature is in Fahrenheit: ");
         char CorF = scanner.nextChar();
 
+        double result;
+
+        if (char == 'C') {
+            result = temp1;
+        } else if (operator == '-') {
+            result = num1 - num2;
+
     
 
